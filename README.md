@@ -72,6 +72,33 @@ print(resultado)
 5. **Homologação** — revisão humana antes de cada commit (ver
    `CONTEXT_RULES.md`, seção 4).
 
+## CI/CD (GitHub Actions)
+
+Todo push e Pull Request para `main`, `develop` e `feature/**` dispara
+o workflow `.github/workflows/ci.yml`, que:
+
+1. Executa a suíte de testes em Python 3.11 e 3.12.
+2. Verifica o padrão de código (PEP 8) com `flake8`.
+3. Constrói a imagem Docker e roda os testes dentro do container.
+
+Nenhum merge deve ser aprovado com o pipeline falhando.
+
+## Containerização (Docker)
+
+```bash
+docker build -t sdd-task-analyzer .
+docker run --rm sdd-task-analyzer
+```
+
+Por padrão, o container executa a suíte de testes — a imagem só deve
+ser considerada válida se todos os testes passarem.
+
+## Governança e Revisão Ética
+
+O relatório completo de governança, segurança e revisão ética (análise
+de riscos de alucinação da IA, conformidade com LGPD, vieses e
+limitações) está em [`docs/RELATORIO_GOVERNANCA_SEGURANCA.md`](docs/RELATORIO_GOVERNANCA_SEGURANCA.md).
+
 ## Fluxo de versionamento
 
 Este repositório segue um Git flow simplificado:
