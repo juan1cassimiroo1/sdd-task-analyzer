@@ -1,7 +1,7 @@
 # Especificação SDD — TaskAnalyzer
 
 **Autor:** Juan Conceição Cassimiro — Ciências da Computação — Turma A - 0726 (CEUB)
-**Versão:** 1.0
+**Versão:** 1.1 (revisão da Fase 3 — ver seção 5)
 
 > Esta especificação é a versão em Markdown, para versionamento no
 > repositório, do documento entregue na Fase 1
@@ -28,7 +28,7 @@ externos.
 | `status` | enum | Sim | `"concluída"`, `"pendente"` ou `"cancelada"`. |
 | `data_criacao` | datetime | Sim | Data/hora de criação (UTC). |
 | `prazo` | datetime | Sim | Data-limite prevista para conclusão (UTC). |
-| `data_inicio` | datetime | Não | Data/hora de início da execução (UTC). |
+| `data_inicio` | datetime | Não* | Obrigatória quando `status = "concluída"`. |
 | `data_conclusao` | datetime | Não* | Obrigatória quando `status = "concluída"`. |
 
 ### 2.2 Saídas (`ResultadoAnalise`)
@@ -48,7 +48,8 @@ externos.
   arredondado a 2 casas decimais.
 - Tarefa em atraso: `data_conclusao > prazo`.
 - Datas inconsistentes (`data_conclusao` anterior a `data_inicio`, ou
-  tarefa concluída sem `data_conclusao`) disparam `DataInvalidaError`.
+  tarefa concluída sem `data_inicio` ou sem `data_conclusao`) disparam
+  `DataInvalidaError`.
 - Ausência total de tarefas concluídas dispara
   `NenhumaTarefaConcluidaError` (evita divisão por zero).
 - Todas as datas são interpretadas em UTC.
@@ -81,3 +82,17 @@ quando não há nenhuma tarefa concluída em todo o conjunto), o cálculo
 por prioridade retorna métricas zeradas quando uma prioridade
 específica não possui tarefas concluídas — pois trata-se de uma
 segmentação normal dos dados, não de uma falha de entrada.
+
+## 5. Revisão 1.1 (Homologação da Fase 3)
+
+Na homologação humana final, o código gerado por IA foi comparado
+linha a linha com este contrato e foram corrigidos os desvios abaixo:
+
+| Desvio encontrado no código da IA | Correção aplicada |
+|---|---|
+| Tarefa concluída sem `data_inicio` usava `data_criacao` como início — comportamento **não previsto** no contrato. | Passa a disparar `DataInvalidaError`. Regra explicitada na seção 2. |
+| Exceções de validação sem classe-base comum. | Criada `TaskValidationError`; as três exceções de contrato herdam dela. |
+| `logging.basicConfig` executado na importação do módulo (a biblioteca alterava o logging de quem a importa). | Removido; a configuração de logs é responsabilidade da aplicação. |
+
+Os cenários de aceite da seção 3 **não foram alterados**; os novos casos
+estão em `TestHomologacaoFase3`, em `tests/test_harness.py`.

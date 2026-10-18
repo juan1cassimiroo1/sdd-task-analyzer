@@ -1,0 +1,47 @@
+# Contrato executável do TaskAnalyzer em formato legível por máquina.
+# Fonte da verdade: specs/task_analyzer_spec.md (versão 1.1).
+module: task_analyzer
+entrypoint: src.task_analyzer.analisar_tarefas
+python: ">=3.11"
+timezone: UTC
+
+input:
+  entity: Tarefa
+  fields:
+    id_tarefa:      {type: int,      required: true,  constraint: "> 0"}
+    titulo:         {type: str,      required: true}
+    prioridade:     {type: enum,     required: true,  values: ["baixa", "média", "alta"]}
+    status:         {type: enum,     required: true,  values: ["concluída", "pendente", "cancelada"]}
+    data_criacao:   {type: datetime, required: true}
+    prazo:          {type: datetime, required: true}
+    data_inicio:    {type: datetime, required: false, note: "obrigatória quando status = concluída"}
+    data_conclusao: {type: datetime, required: false, note: "obrigatória quando status = concluída"}
+
+output:
+  entity: ResultadoAnalise
+  fields:
+    quantidade_tarefas:          {type: int}
+    tempo_medio_conclusao_horas: {type: float, rounding: 2}
+    taxa_atraso_percentual:      {type: float, rounding: 2}
+    indicadores_por_prioridade:  {type: dict,  keys: ["baixa", "média", "alta"]}
+
+rules:
+  - "Apenas tarefas com status concluída entram nos cálculos de tempo e atraso."
+  - "tempo_conclusao = data_conclusao - data_inicio, em horas."
+  - "Tarefa em atraso quando data_conclusao > prazo."
+  - "Datas inconsistentes disparam DataInvalidaError (subclasse de TaskValidationError)."
+  - "Nenhuma tarefa concluída dispara NenhumaTarefaConcluidaError (evita divisão por zero)."
+  - "id_tarefa <= 0 dispara IdentificadorInvalidoError."
+
+errors:
+  base: TaskAnalyzerError
+  validation_base: TaskValidationError
+  validation: [IdentificadorInvalidoError, DataInvalidaError, NenhumaTarefaConcluidaError]
+
+acceptance:
+  - id: cenario_1_sucesso
+    given: "conjunto de tarefas válidas"
+    then: "retorna métricas corretas, gerais e por prioridade"
+  - id: cenario_2_excecao
+    given: "datas inválidas ou nenhuma tarefa concluída (divisão por zero)"
+    then: "dispara exceção específica e tratada"
