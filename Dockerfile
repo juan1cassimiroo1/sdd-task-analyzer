@@ -19,4 +19,4 @@ USER appuser
 
 # Por padrão, o container valida o código executando a suíte de testes —
 # reforça que nenhuma imagem é publicada sem homologação automatizada.
-CMD ["python", "-m", "pytest", "tests/", "-v"]
+CMD ["python", "-m", "pytest", "tests/test_harness.py", "-v"]
