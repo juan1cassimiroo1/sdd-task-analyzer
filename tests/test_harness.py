@@ -19,6 +19,7 @@ from src.task_analyzer import (
     Prioridade,
     StatusTarefa,
     Tarefa,
+    TaskValidationError,
     analisar_tarefas,
 )
 
@@ -184,3 +185,42 @@ class TestCenario2ExcecaoErro:
         )
         with pytest.raises(IdentificadorInvalidoError):
             analisar_tarefas([tarefa_invalida])
+
+
+# --------------------------------------------------------------------------
+# Homologação final (Fase 3) — casos adicionais encontrados na revisão
+# crítica humana. Não alteram os cenários de aceite acima.
+# --------------------------------------------------------------------------
+
+
+class TestHomologacaoFase3:
+    """Casos de borda identificados na homologação humana do código de IA."""
+
+    def test_tarefa_concluida_sem_data_inicio(self) -> None:
+        """A IA havia assumido data_criacao como início (fora do contrato)."""
+        criacao = datetime(2026, 1, 1, tzinfo=UTC)
+        tarefa = Tarefa(
+            id_tarefa=10,
+            titulo="Concluída sem data_inicio",
+            prioridade=Prioridade.ALTA,
+            status=StatusTarefa.CONCLUIDA,
+            data_criacao=criacao,
+            prazo=criacao + timedelta(days=1),
+            data_inicio=None,
+            data_conclusao=criacao + timedelta(hours=3),
+        )
+        with pytest.raises(DataInvalidaError):
+            analisar_tarefas([tarefa])
+
+    @pytest.mark.parametrize(
+        "excecao",
+        [IdentificadorInvalidoError, DataInvalidaError, NenhumaTarefaConcluidaError],
+    )
+    def test_erros_de_contrato_herdam_de_task_validation_error(
+        self, excecao: type[Exception]
+    ) -> None:
+        assert issubclass(excecao, TaskValidationError)
+
+    def test_lista_vazia_capturavel_como_task_validation_error(self) -> None:
+        with pytest.raises(TaskValidationError):
+            analisar_tarefas([])
