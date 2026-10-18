@@ -22,11 +22,17 @@ sdd-task-analyzer/
 ├── README.md              # Este arquivo
 ├── CONTEXT_RULES.md        # Regras persistentes para a IA
 ├── specs/
-│   └── task_analyzer_spec.md   # Especificação SDD (fonte da verdade)
+│   ├── task_analyzer_spec.md        # Especificação SDD (fonte da verdade)
+│   ├── system_design_document.pdf   # Documento SDD entregue na Fase 1
+│   └── requirements.yaml            # Contrato em formato legível por máquina
 ├── tests/
 │   └── test_harness.py    # Testes automatizados (pytest)
 ├── src/
 │   └── task_analyzer.py   # Implementação homologada
+├── .github/workflows/ci.yml   # Pipeline CI/CD (GitHub Actions)
+├── Dockerfile                 # Imagem python:3.11-slim
+├── docker-compose.yml         # Orquestração da execução isolada
+├── docs/                      # Relatório de governança e ética
 ├── .gitignore
 └── requirements.txt
 ```
@@ -74,30 +80,41 @@ print(resultado)
 
 ## CI/CD (GitHub Actions)
 
-Todo push e Pull Request para `main`, `develop` e `feature/**` dispara
-o workflow `.github/workflows/ci.yml`, que:
+Todo push e Pull Request para `main` e `develop` dispara o workflow
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml), que roda em
+`ubuntu-latest` com Python 3.11 e executa:
 
-1. Executa a suíte de testes em Python 3.11 e 3.12.
-2. Verifica o padrão de código (PEP 8) com `flake8`.
-3. Constrói a imagem Docker e roda os testes dentro do container.
+1. Instalação das dependências (`requirements.txt`).
+2. Verificação de estilo com `flake8` (PEP 8).
+3. Suíte de testes: `pytest tests/test_harness.py -v`.
+4. Job `docker`: build da imagem e execução dos testes dentro do
+   container (`docker run` e `docker compose run`).
 
-Nenhum merge deve ser aprovado com o pipeline falhando.
+Nenhuma alteração deve ser integrada com o pipeline falhando.
 
 ## Containerização (Docker)
 
+A imagem usa `python:3.11-slim`, copia o código e define o `pytest`
+como comando padrão (`CMD`). O `docker-compose.yml` orquestra a
+execução isolada com um único comando.
+
 ```bash
+# Opção 1 — Docker puro
 docker build -t sdd-task-analyzer .
 docker run --rm sdd-task-analyzer
+
+# Opção 2 — Docker Compose
+docker compose run --rm task-analyzer
 ```
 
-Por padrão, o container executa a suíte de testes — a imagem só deve
-ser considerada válida se todos os testes passarem.
+Resultado esperado: todos os testes aprovados (100% passed).
 
 ## Governança e Revisão Ética
 
-O relatório completo de governança, segurança e revisão ética (análise
-de riscos de alucinação da IA, conformidade com LGPD, vieses e
-limitações) está em [`docs/RELATORIO_GOVERNANCA_SEGURANCA.md`](docs/RELATORIO_GOVERNANCA_SEGURANCA.md).
+O relatório técnico de governança e ética (análise de alucinações,
+homologação *Critical-in-the-Loop*, rastreabilidade e conformidade) está
+em [`docs/RELATORIO_GOVERNANCA_ETICA.md`](docs/RELATORIO_GOVERNANCA_ETICA.md)
+(versão em PDF entregue no AVA).
 
 ## Fluxo de versionamento
 

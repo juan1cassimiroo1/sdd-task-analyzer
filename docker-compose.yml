@@ -1,0 +1,8 @@
+services:
+  task-analyzer:
+    build: .
+    image: sdd-task-analyzer:latest
+    container_name: sdd-task-analyzer
+    # Executa a suíte de testes completa em ambiente isolado:
+    #   docker compose run --rm task-analyzer
+    command: ["python", "-m", "pytest", "tests/test_harness.py", "-v"]

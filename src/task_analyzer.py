@@ -21,7 +21,6 @@ from enum import Enum
 from typing import Optional
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 
 # --------------------------------------------------------------------------
@@ -33,20 +32,29 @@ class TaskAnalyzerError(Exception):
     """Exceção base para todos os erros do módulo TaskAnalyzer."""
 
 
-class IdentificadorInvalidoError(TaskAnalyzerError):
+class TaskValidationError(TaskAnalyzerError):
+    """Exceção base para entradas que violam o contrato de negócio.
+
+    Agrupa os erros de validação (identificador, datas e ausência de
+    tarefas concluídas), permitindo que o chamador trate qualquer falha
+    de contrato com um único ``except TaskValidationError``.
+    """
+
+
+class IdentificadorInvalidoError(TaskValidationError):
     """Levantada quando ``id_tarefa`` é menor ou igual a zero."""
 
 
-class DataInvalidaError(TaskAnalyzerError):
+class DataInvalidaError(TaskValidationError):
     """Levantada quando as datas de uma tarefa são inconsistentes.
 
     Ocorre, por exemplo, quando ``data_conclusao`` é anterior a
     ``data_inicio``, ou quando uma tarefa concluída não possui
-    ``data_conclusao`` preenchida.
+    ``data_inicio`` ou ``data_conclusao`` preenchida.
     """
 
 
-class NenhumaTarefaConcluidaError(TaskAnalyzerError):
+class NenhumaTarefaConcluidaError(TaskValidationError):
     """Levantada quando não há tarefas concluídas para calcular métricas.
 
     Evita divisão por zero no cálculo de tempo médio de conclusão e de
@@ -161,10 +169,12 @@ def _validar_tarefa(tarefa: Tarefa) -> None:
                 f"Tarefa {tarefa.id_tarefa}: status 'concluída' exige "
                 "data_conclusao preenchida."
             )
-        if (
-            tarefa.data_inicio is not None
-            and tarefa.data_conclusao < tarefa.data_inicio
-        ):
+        if tarefa.data_inicio is None:
+            raise DataInvalidaError(
+                f"Tarefa {tarefa.id_tarefa}: status 'concluída' exige "
+                "data_inicio preenchida para calcular o tempo de conclusão."
+            )
+        if tarefa.data_conclusao < tarefa.data_inicio:
             raise DataInvalidaError(
                 f"Tarefa {tarefa.id_tarefa}: data_conclusao anterior a "
                 "data_inicio."
@@ -184,12 +194,10 @@ def _tarefas_concluidas(tarefas: list[Tarefa]) -> list[Tarefa]:
 def _tempo_conclusao_horas(tarefa: Tarefa) -> float:
     """Calcula o tempo de conclusão de uma tarefa concluída, em horas.
 
-    Requer que ``data_inicio`` e ``data_conclusao`` estejam preenchidas.
-    Quando ``data_inicio`` não está disponível, usa ``data_criacao`` como
-    referência de início.
+    Requer que ``data_inicio`` e ``data_conclusao`` estejam preenchidas;
+    essa condição é garantida por ``_validar_tarefa`` antes do cálculo.
     """
-    inicio = tarefa.data_inicio or tarefa.data_criacao
-    delta = tarefa.data_conclusao - inicio  # type: ignore[operator]
+    delta = tarefa.data_conclusao - tarefa.data_inicio  # type: ignore[operator]
     return round(delta.total_seconds() / 3600, 2)
 
 
