@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, develop, "feature/**"]
+    branches: [main, develop]
   pull_request:
     branches: [main, develop]
 
@@ -10,18 +10,15 @@ jobs:
   test:
     name: Testes automatizados (pytest)
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.11", "3.12"]
 
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4
 
-      - name: Configurar Python ${{ matrix.python-version }}
+      - name: Configurar Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.11"
           cache: "pip"
 
       - name: Instalar dependências
@@ -32,20 +29,14 @@ jobs:
           pip install flake8
           flake8 src tests --max-line-length=100 --extend-ignore=E203
 
-      - name: Executar testes automatizados
-        run: python -m pytest tests/ -v --junitxml=relatorio-testes.xml
+      - name: Executar suíte de testes (Test Harness)
+        run: pytest tests/test_harness.py -v
 
-      - name: Publicar relatório de testes
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: relatorio-testes-${{ matrix.python-version }}
-          path: relatorio-testes.xml
-
-  build-docker:
-    name: Build da imagem Docker
+  docker:
+    name: Containerização (Docker)
     runs-on: ubuntu-latest
     needs: test
+
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4
@@ -55,3 +46,6 @@ jobs:
 
       - name: Executar testes dentro do container
         run: docker run --rm sdd-task-analyzer:ci
+
+      - name: Executar via docker compose
+        run: docker compose run --rm task-analyzer
